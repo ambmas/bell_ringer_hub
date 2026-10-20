@@ -59,7 +59,7 @@ function render(){
     }else if(part[1]==="mc"){
       addChoices(c,day+"w"+week+"p"+idx,part[2],part[3],"p"+idx);
     }else{
-      const p=document.createElement("p");p.textContent=part[2];c.appendChild(p);
+      const p=document.createElement("p");p.innerHTML=part[2];c.appendChild(p);
       const t=document.createElement("textarea");t.placeholder="Type your response here.";t.dataset.field="p"+idx;c.appendChild(t);
     }
     d.appendChild(c);activity.appendChild(d);
