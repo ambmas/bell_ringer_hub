@@ -8,11 +8,17 @@ friday:["Friday","Figurative Language & Literary Terms"]
 };
 const qs=s=>document.querySelector(s), qsa=s=>[...document.querySelectorAll(s)];
 const weekSelect=qs("#weekSelect"), activity=qs("#activity");
+let storageAvailable=true;
+function safeRead(k){try{return localStorage.getItem(k)}catch(e){storageAvailable=false;return null}}
+function safeWrite(k,v){try{localStorage.setItem(k,v);return true}catch(e){storageAvailable=false;return false}}
+function safeRemove(k){try{localStorage.removeItem(k);return true}catch(e){storageAvailable=false;return false}}
+function storageNotice(){const n=qs("#storageNote");n.textContent=storageAvailable?"Responses autosave on this browser only; they are not submitted to Canvas.":"Browser autosave is unavailable. Copy or download your responses before switching activities."}
+
 for(let i=1;i<=18;i++){const o=document.createElement("option");o.value=i;o.textContent="Week "+i;weekSelect.appendChild(o)}
 const params=new URLSearchParams(location.search);
-let day=(params.get("day")||localStorage.getItem("bell_selected_day")||"monday").toLowerCase();
+let day=(params.get("day")||safeRead("bell_selected_day")||"monday").toLowerCase();
 if(!LABELS[day]) day="monday";
-let week=parseInt(params.get("week")||localStorage.getItem("bell_selected_week")||"1",10);
+let week=parseInt(params.get("week")||safeRead("bell_selected_week")||"1",10);
 if(!(week>=1&&week<=18)) week=1;
 let data=null,key="";
 
@@ -22,7 +28,7 @@ function addChoices(container,name,prompt,opts,field){
   opts.forEach(o=>{const lab=document.createElement("label");lab.className="choice";const inp=document.createElement("input");inp.type="radio";inp.name=name;inp.value=o;inp.dataset.field=field;lab.appendChild(inp);lab.appendChild(document.createTextNode(" "+o));box.appendChild(lab)});
   container.appendChild(box);
 }
-function getState(){try{return JSON.parse(localStorage.getItem(key)||"{}")}catch(e){return{}}}
+function getState(){try{return JSON.parse(safeRead(key)||"{}")}catch(e){return{}}}
 function restore(){
   const s=getState();
   qsa("[data-field]").forEach(el=>{const f=el.dataset.field;if(el.type==="radio")el.checked=s[f]===el.value;else if(s[f]!=null)el.value=s[f]});
@@ -31,22 +37,25 @@ function restore(){
 function save(){
   const s={};
   qsa("[data-field]").forEach(el=>{const f=el.dataset.field;if(el.type==="radio"){if(el.checked)s[f]=el.value}else s[f]=el.value});
-  localStorage.setItem(key,JSON.stringify(s));updateProgress();
+  safeWrite(key,JSON.stringify(s));updateProgress();storageNotice();
 }
 function updateProgress(){
   const fields=[...new Set(qsa("[data-field]").map(x=>x.dataset.field))];let done=0;
   fields.forEach(f=>{const els=qsa('[data-field="'+f+'"]');if(!els.length)return;if(els[0].type==="radio"){if(els.some(e=>e.checked))done++}else if((els[0].value||"").trim())done++});
   const pct=fields.length?Math.round(done/fields.length*100):0;
-  qs("#progress").style.width=pct+"%";qs("#statusPill").textContent=pct===0?"Not Started":pct===100?"Completed":"In Progress";
+  qs("#progress").style.width=pct+"%";qs("#progressShell").setAttribute("aria-valuenow",String(pct));qs("#progressText").textContent=done+" of "+fields.length+" responses completed";qs("#statusPill").textContent=pct===0?"Not Started":pct===100?"Completed":"In Progress";
+}
+function syncUrl(){
+  try{const u=new URL(location.href);u.searchParams.set("day",day);u.searchParams.set("week",String(week));history.replaceState(null,"",u.pathname+u.search+u.hash)}catch(e){}
 }
 function render(){
-  localStorage.setItem("bell_selected_day",day);localStorage.setItem("bell_selected_week",String(week));
+  safeWrite("bell_selected_day",day);safeWrite("bell_selected_week",String(week));syncUrl();
   const all=window.BELL_DATA[day]||[];data=all[week-1];
-  qsa(".days button").forEach(b=>b.classList.toggle("active",b.dataset.day===day));
+  qsa(".days button").forEach(b=>{const selected=b.dataset.day===day;b.classList.toggle("active",selected);b.setAttribute("aria-pressed",String(selected))});
   weekSelect.value=String(week);
   qs("#dayPill").textContent=LABELS[day][0];qs("#weekPill").textContent="Week "+week;
   qs("#categoryLabel").textContent=LABELS[day][0]+" · "+LABELS[day][1];
-  if(!data){qs("#activityTitle").textContent="Activity coming soon";qs("#activityRule").textContent="";activity.innerHTML="";return}
+  if(!data){qs("#activityTitle").textContent="Activity coming soon";qs("#activityRule").textContent="No activity is available for this day and week.";activity.innerHTML="";updateProgress();storageNotice();return}
   key="bellringer_"+day+"_w"+week;
   qs("#activityTitle").textContent=data[0];qs("#activityRule").textContent=data[1];
   activity.innerHTML="";
@@ -64,9 +73,10 @@ function render(){
     }
     d.appendChild(c);activity.appendChild(d);
   });
-  restore();window.scrollTo({top:0,behavior:"smooth"});
+  restore();storageNotice();window.scrollTo({top:0,behavior:"smooth"});
 }
 function collect(){
+  if(!data)return "No activity available for "+LABELS[day][0]+" Week "+week;
   let out=[LABELS[day][0]+" — "+LABELS[day][1],"Week "+week+" — "+data[0],""];
   data[2].forEach((part,idx)=>{
     out.push((idx+1)+" · "+part[0]);
@@ -84,6 +94,34 @@ function collect(){
 document.addEventListener("input",e=>{if(e.target.matches("[data-field]"))save()});
 document.addEventListener("change",e=>{if(e.target===weekSelect){week=parseInt(e.target.value,10);render()}else if(e.target.matches("[data-field]"))save()});
 qsa(".days button").forEach(b=>b.onclick=()=>{day=b.dataset.day;render()});
-qs("#copyBtn").onclick=async()=>{try{await navigator.clipboard.writeText(collect());const t=qs("#toast");t.style.display="block";setTimeout(()=>t.style.display="none",2500)}catch(e){alert("Copy was blocked by the browser. Select your responses manually.")}};
-qs("#clearBtn").onclick=()=>{if(confirm("Clear all responses for "+LABELS[day][0]+" Week "+week+"?")){localStorage.removeItem(key);qsa("textarea").forEach(x=>x.value="");qsa('input[type="radio"]').forEach(x=>x.checked=false);updateProgress()}};
+let toastTimeout=null;
+function notify(text,keep){
+  const toast=qs("#toast");
+  clearTimeout(toastTimeout);toast.textContent=text;toast.style.display="block";
+  if(!keep)toastTimeout=setTimeout(()=>{toast.style.display="none"},3500);
+}
+async function copyValue(text){
+  const fallback=qs("#copyFallback"),label=qs("#copyFallbackLabel");
+  fallback.hidden=true;label.hidden=true;
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(text);return true}}catch(e){}
+  fallback.value=text;fallback.hidden=false;label.hidden=false;fallback.focus();fallback.select();
+  try{if(document.execCommand&&document.execCommand("copy")){fallback.hidden=true;label.hidden=true;return true}}catch(e){}
+  return false;
+}
+qs("#copyBtn").onclick=async()=>{
+  const ok=await copyValue(collect());
+  notify(ok?"Copied! Paste your responses into Canvas.":"Clipboard was blocked. Select and copy the text in the box below.",!ok);
+};
+qs("#shareBtn").onclick=async()=>{
+  const ok=await copyValue(location.href);
+  notify(ok?"Activity link copied. It selects the same day and week, not saved answers.":"Clipboard was blocked. Copy the activity link from the box below.",!ok);
+};
+qs("#downloadBtn").onclick=()=>{
+  const blob=new Blob([collect()],{type:"text/plain;charset=utf-8"}),url=URL.createObjectURL(blob);
+  const link=document.createElement("a");link.href=url;link.download="bell-ringer-"+day+"-week-"+week+".txt";
+  document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  notify("Responses downloaded. They have not been submitted to Canvas.");
+};
+qs("#clearBtn").onclick=()=>{if(confirm("Clear all responses for "+LABELS[day][0]+" Week "+week+"?")){safeRemove(key);qsa("textarea[data-field]").forEach(x=>x.value="");qsa('input[type="radio"][data-field]').forEach(x=>x.checked=false);updateProgress();storageNotice();notify("Responses for this activity cleared.")}};
 render();
