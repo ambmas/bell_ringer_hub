@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ELA Bell Ringer Hub</title>
-<link rel="stylesheet" href="styles.css">
+<meta name="description" content="Interactive ELA bell ringers for vocabulary, grammar, reading, writing, and literary language.">
+<link rel="stylesheet" href="./styles.css">
 </head>
 <body>
 <main class="wrap">
@@ -13,6 +14,8 @@
     <h1>Bell Ringer Hub</h1>
     <p class="sub">Choose the correct day and week. Complete every section, then copy your responses into Canvas.</p>
   </section>
+
+  <nav class="toolNav" aria-label="Other classroom activities"><span class="toolNavLabel">Classroom tools</span><a class="toolNavLink active" href="./" aria-current="page">Bell Ringer Hub</a><a class="toolNavLink" href="./business-walrus/">Business Walrus Pitch Game</a></nav>
 
   <section class="intro">
     <details>
@@ -26,11 +29,11 @@
   </section>
 
   <nav class="days" aria-label="Bell ringer day">
-    <button data-day="monday">Monday<span>Word Study</span></button>
-    <button data-day="tuesday">Tuesday<span>Test Prep Words</span></button>
-    <button data-day="wednesday">Wednesday<span>Grammar</span></button>
-    <button data-day="thursday">Thursday<span>Reading &amp; Writing</span></button>
-    <button data-day="friday">Friday<span>Literary Language</span></button>
+    <button type="button" aria-pressed="false" data-day="monday">Monday<span>Word Study</span></button>
+    <button type="button" aria-pressed="false" data-day="tuesday">Tuesday<span>Test Prep Words</span></button>
+    <button type="button" aria-pressed="false" data-day="wednesday">Wednesday<span>Grammar</span></button>
+    <button type="button" aria-pressed="false" data-day="thursday">Thursday<span>Reading &amp; Writing</span></button>
+    <button type="button" aria-pressed="false" data-day="friday">Friday<span>Literary Language</span></button>
   </nav>
 
   <section class="controls">
@@ -43,7 +46,8 @@
       <span class="pill" id="weekPill">Week 1</span>
       <span class="pill" id="statusPill">Not Started</span>
     </div>
-    <div class="progressShell"><div id="progress" class="progress"></div></div>
+    <div class="progressShell" id="progressShell" role="progressbar" aria-label="Activity completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress" class="progress"></div></div>
+    <p class="progressText" id="progressText" aria-live="polite">0 of 0 responses completed</p>
   </section>
 
   <section class="activityHead">
@@ -57,18 +61,23 @@
   <section class="finish">
     <h3>When You Finish</h3>
     <p>Click <strong>Copy My Responses</strong>, return to Canvas, and paste your work into the Text Entry box.</p>
+    <p id="storageNote" class="storageNote">Responses save on this browser only, not to Canvas.</p>
     <div class="actions">
       <button id="copyBtn" type="button">Copy My Responses</button>
+      <button id="shareBtn" class="secondary" type="button">Copy Activity Link</button>
+      <button id="downloadBtn" class="secondary" type="button">Download Responses</button>
       <button id="clearBtn" class="secondary" type="button">Clear This Activity</button>
     </div>
-    <div id="toast" class="toast">Copied! Paste your responses into Canvas.</div>
+    <div id="toast" class="toast" role="status" aria-live="polite">Copied! Paste your responses into Canvas.</div>
+    <label id="copyFallbackLabel" for="copyFallback" class="copyFallbackLabel" hidden>Manual copy: select and copy the text below.</label>
+    <textarea id="copyFallback" readonly hidden aria-label="Text to copy manually"></textarea>
   </section>
 </main>
-<script src="monday.js"></script>
-<script src="tuesday.js"></script>
-<script src="wednesday.js"></script>
-<script src="thursday.js"></script>
-<script src="friday.js"></script>
-<script src="app.js"></script>
+<script src="./monday.js"></script>
+<script src="./tuesday.js"></script>
+<script src="./wednesday.js"></script>
+<script src="./thursday.js"></script>
+<script src="./friday.js"></script>
+<script src="./app.js"></script>
 </body>
 </html>
